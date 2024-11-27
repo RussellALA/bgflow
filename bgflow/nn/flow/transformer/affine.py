@@ -57,13 +57,10 @@ class AffineTransformer(Transformer):
         sigma = torch.exp(log_sigma)
         dlogp = (log_sigma).sum(dim=-1, keepdim=True)
         y = sigma * y + mu
-        if self._is_circular:
-            if isinstance(self._is_circular, bool):
-                y = y % 1.0
-            elif isinstance(self._is_circular, torch.Tensor):
-                y[..., self._is_circular] = y[..., self._is_circular] % 1.0
-            else:
-                raise ValueError("is_circular must be bool or int")
+        if isinstance(self._is_circular, bool) and self._is_circular:
+            y = y % 1.0
+        elif isinstance(self._is_circular, torch.Tensor):
+            y[..., self._is_circular] = y[..., self._is_circular] % 1.0
         if self._restrict_to_unit_interval:
             y = torch.clamp(y, 0.0, 1.0)
         return y, dlogp
@@ -75,13 +72,10 @@ class AffineTransformer(Transformer):
         sigma_inv = torch.exp(-log_sigma)
         dlogp = (-log_sigma).sum(dim=-1, keepdim=True)
         y = sigma_inv * (y - mu)
-        if self._is_circular:
-            if isinstance(self._is_circular, bool):
-                y = y % 1.0
-            elif isinstance(self._is_circular, torch.Tensor):
-                y[..., self._is_circular] = y[..., self._is_circular] % 1.0
-            else:
-                raise ValueError("is_circular must be bool or int")
+        if isinstance(self._is_circular, bool) and self._is_circular:
+            y = y % 1.0
+        elif isinstance(self._is_circular, torch.Tensor):
+            y[..., self._is_circular] = y[..., self._is_circular] % 1.0
         if self._restrict_to_unit_interval:
             y = torch.clamp(y, 0.0, 1.0)
         return y, dlogp

@@ -55,7 +55,7 @@ def _make_affine_transformer(what, shape_info, conditioners, **kwargs):
     #         "not supported for partly circular indices."
     #     )
     return AffineTransformer(
-        **conditioners, is_circular=shape_info.dim_circular(what), **kwargs
+        **conditioners, is_circular=shape_info.is_circular(what), **kwargs
     )
 
 
