@@ -5,6 +5,7 @@ from .base import Transformer
 
 __all__ = [
     "ConditionalSplineTransformer",
+    "TemperatureSteerableConditionalSplineTransformer",
 ]
 
 DEFAULT_MIN_BIN_WIDTH = 1e-3
@@ -209,3 +210,88 @@ class ConditionalSplineTransformer(Transformer):
             return slice(None)
         else:
             return torch.logical_not(self._is_circular)
+
+def stable_log(x, eps=1e-10):
+    if torch.any(x < 0):
+        raise ValueError("Logarithm of negative value, {}".format(x[x < 0]))
+    return torch.log(x + eps)
+
+class TemperatureSteerableConditionalSplineTransformer(ConditionalSplineTransformer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+
+    def _compute_params(self, x, y_dim, temperature=1.0, eps=1e-6):
+        beta_1 = 1/temperature
+        beta_0 = 1.0
+        widths, heights, slopes = super()._compute_params(x, y_dim)
+        widths = torch.nn.functional.softmax(widths, dim=-1)
+        heights = torch.nn.functional.softmax(heights, dim=-1)
+        slopes = torch.nn.functional.softplus(slopes, beta=1)
+        potential = stable_log(slopes)/beta_0
+        mean_potential = (stable_log(heights) - stable_log(widths))/beta_0
+        mean_potential_adjusted = beta_1*mean_potential + stable_log(widths)
+        log_heights_beta_1 = mean_potential_adjusted - torch.logsumexp(mean_potential_adjusted, dim=-1, keepdim=True)
+        log_slopes_beta_1 = beta_1*potential
+        return widths, torch.exp(log_heights_beta_1), torch.exp(log_slopes_beta_1)
+
+    def _forward(self, x, y, *args, temperature=1.0, **kwargs):
+        from nflows.transforms.splines import rational_quadratic_spline
+        from nflows.transforms.base import InputOutsideDomain
+
+        widths, heights, slopes = self._compute_params(x, y.shape[-1], temperature=temperature)
+        rqs = lambda y : rational_quadratic_spline(
+                y,
+                widths,
+                heights,
+                slopes,
+                inverse=True,
+                left=self._left,
+                right=self._right,
+                top=self._top,
+                bottom=self._bottom,
+                **self._default_settings
+            )
+        try:
+            z, dlogp = rqs(y)
+        except InputOutsideDomain:
+            exceeded_left = (y - self._left).min()
+            exceeded_right = (y - self._right).max()
+            warnings.warn(
+                f"InputOutsideDomain: min {exceeded_left.item()}; "
+                f"max {self._right} + {exceeded_right.item()}",
+                UserWarning
+            )
+            z, dlogp = rqs(y.clamp(self._left, self._right))
+        return z, dlogp.sum(dim=-1, keepdim=True)
+
+    def _inverse(self, x, y, *args, temperature=1.0, **kwargs):
+        from nflows.transforms.splines import rational_quadratic_spline
+        from nflows.transforms.base import InputOutsideDomain
+
+        widths, heights, slopes = self._compute_params(x, y.shape[-1], temperature=temperature)
+        rqs = lambda y: rational_quadratic_spline(
+            y,
+            widths,
+            heights,
+            slopes,
+            inverse=False,
+            left=self._left,
+            right=self._right,
+            top=self._top,
+            bottom=self._bottom,
+            **self._default_settings
+        )
+        try:
+            z, dlogp = rqs(y)
+        except InputOutsideDomain:
+            exceeded_left = (y - self._left).min()
+            exceeded_right = (y - self._right).max()
+            warnings.warn(
+                f"InputOutsideDomain: min {exceeded_left.item()}; "
+                f"max {self._right} + {exceeded_right.item()}",
+                UserWarning
+            )
+            z, dlogp = rqs(y.clamp(self._left, self._right))
+        return z, dlogp.sum(dim=-1, keepdim=True)
+    

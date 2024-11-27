@@ -96,6 +96,7 @@ def _make_residual_conditioner(
     context_dims=0,
     init_identity=True,
     activation=F.relu,
+    **kwargs
 ):
     net = ResidualNet(
         in_features=dim_in,
@@ -322,4 +323,5 @@ def _mixture_out_dims(
 CONDITIONER_OUT_DIMS = {
     bg.ConditionalSplineTransformer: _spline_out_dims,
     bg.AffineTransformer: _affine_out_dims,
+    bg.TemperatureSteerableConditionalSplineTransformer: _spline_out_dims,
 }

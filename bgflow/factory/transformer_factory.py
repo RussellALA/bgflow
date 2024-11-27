@@ -3,7 +3,7 @@
 import torch
 from ..nn.flow.inverted import InverseFlow
 from ..nn.flow.transformer.affine import AffineTransformer
-from ..nn.flow.transformer.spline import ConditionalSplineTransformer
+from ..nn.flow.transformer.spline import ConditionalSplineTransformer, TemperatureSteerableConditionalSplineTransformer
 
 __all__ = ["make_transformer"]
 
@@ -43,18 +43,24 @@ def _make_spline_transformer(what, shape_info, conditioners, **kwargs):
     )
 
 
+def _make_ts_spline_transformer(what, shape_info, conditioners, **kwargs):
+    return TemperatureSteerableConditionalSplineTransformer(
+        is_circular=shape_info.is_circular(what), **conditioners, **kwargs
+    )
+
 def _make_affine_transformer(what, shape_info, conditioners, **kwargs):
-    if shape_info.dim_circular(what) not in [0, shape_info[what[0]][-1]]:
-        raise NotImplementedError(
-            "Circular affine transformers are currently "
-            "not supported for partly circular indices."
-        )
+    # if shape_info.dim_circular(what) not in [0, shape_info[what[0]][-1]]:
+    #     raise NotImplementedError(
+    #         "Circular affine transformers are currently "
+    #         "not supported for partly circular indices."
+    #     )
     return AffineTransformer(
-        **conditioners, is_circular=shape_info.dim_circular(what) > 0, **kwargs
+        **conditioners, is_circular=shape_info.dim_circular(what), **kwargs
     )
 
 
 TRANSFORMER_FACTORIES = {
     ConditionalSplineTransformer: _make_spline_transformer,
     AffineTransformer: _make_affine_transformer,
+    TemperatureSteerableConditionalSplineTransformer: _make_ts_spline_transformer,
 }

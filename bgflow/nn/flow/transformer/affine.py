@@ -23,6 +23,7 @@ class AffineTransformer(Transformer):
         init_downscale=1.0,
         preserve_volume=False,
         is_circular=False,
+        restrict_to_unit_interval=False,
     ):
         if scale_transformation is not None and is_circular:
             raise ValueError("Scaling is not compatible with periodicity.")
@@ -31,7 +32,8 @@ class AffineTransformer(Transformer):
         self._scale_transformation = scale_transformation
         self._log_alpha = torch.nn.Parameter(torch.zeros(1) - init_downscale)
         self._preserve_volume = preserve_volume
-        self._is_circular = is_circular
+        self._is_circular = torch.as_tensor(is_circular, dtype=torch.bool)
+        self._restrict_to_unit_interval = restrict_to_unit_interval
 
     def _get_mu_and_log_sigma(self, x, y, *cond):
         if self._shift_transformation is not None:
@@ -56,7 +58,14 @@ class AffineTransformer(Transformer):
         dlogp = (log_sigma).sum(dim=-1, keepdim=True)
         y = sigma * y + mu
         if self._is_circular:
-            y = y % 1.0
+            if isinstance(self._is_circular, bool):
+                y = y % 1.0
+            elif isinstance(self._is_circular, torch.Tensor):
+                y[..., self._is_circular] = y[..., self._is_circular] % 1.0
+            else:
+                raise ValueError("is_circular must be bool or int")
+        if self._restrict_to_unit_interval:
+            y = torch.clamp(y, 0.0, 1.0)
         return y, dlogp
 
     def _inverse(self, x, y, *cond, **kwargs):
@@ -67,5 +76,12 @@ class AffineTransformer(Transformer):
         dlogp = (-log_sigma).sum(dim=-1, keepdim=True)
         y = sigma_inv * (y - mu)
         if self._is_circular:
-            y = y % 1.0
+            if isinstance(self._is_circular, bool):
+                y = y % 1.0
+            elif isinstance(self._is_circular, torch.Tensor):
+                y[..., self._is_circular] = y[..., self._is_circular] % 1.0
+            else:
+                raise ValueError("is_circular must be bool or int")
+        if self._restrict_to_unit_interval:
+            y = torch.clamp(y, 0.0, 1.0)
         return y, dlogp
