@@ -61,8 +61,6 @@ class AffineTransformer(Transformer):
             y = y % 1.0
         elif isinstance(self._is_circular, torch.Tensor):
             y[..., self._is_circular] = y[..., self._is_circular] % 1.0
-        if self._restrict_to_unit_interval:
-            y = torch.clamp(y, 0.0, 1.0)
         return y, dlogp
 
     def _inverse(self, x, y, *cond, **kwargs):
@@ -76,6 +74,4 @@ class AffineTransformer(Transformer):
             y = y % 1.0
         elif isinstance(self._is_circular, torch.Tensor):
             y[..., self._is_circular] = y[..., self._is_circular] % 1.0
-        if self._restrict_to_unit_interval:
-            y = torch.clamp(y, 0.0, 1.0)
         return y, dlogp

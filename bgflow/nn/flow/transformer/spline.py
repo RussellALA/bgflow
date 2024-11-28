@@ -131,6 +131,7 @@ class ConditionalSplineTransformer(Transformer):
         slopes = torch.cat([slopes, slopes[..., [0]]], dim=-1)
         # make noncircular indices non-periodic
         slopes[..., self._noncircular_indices(y_dim), -1] = noncircular_slopes
+        # slopes = torch.nn.functional.softplus(slopes, beta=1)
         return widths, heights, slopes
 
     def _forward(self, x, y, context=None):
