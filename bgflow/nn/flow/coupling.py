@@ -180,24 +180,24 @@ class CouplingFlow(Flow):
             )
         self.cat_dim = cat_dim
 
-    def _forward(self, *x, context=None):
+    def _forward(self, *x, context=None, **kwargs):
         input_lengths = [x[i].shape[self.cat_dim] for i in self.transformed_indices]
         inputs = torch.cat([x[i] for i in self.transformed_indices], dim=self.cat_dim)
         cond_inputs = torch.cat([x[i] for i in self.cond_indices], dim=self.cat_dim)
         x = list(x)
-        y, dlogp = self.transformer.forward(cond_inputs, inputs, context=context)
+        y, dlogp = self.transformer.forward(cond_inputs, inputs, context=context, **kwargs)
         y = torch.split(y, input_lengths, self.cat_dim)
         for i, yi in zip(self.transformed_indices, y):
             x[i] = yi
         return (*x, dlogp)
 
-    def _inverse(self, *x, context=None):
+    def _inverse(self, *x, context=None, **kwargs):
         input_lengths = [x[i].shape[self.cat_dim] for i in self.transformed_indices]
         inputs = torch.cat([x[i] for i in self.transformed_indices], dim=self.cat_dim)
         cond_inputs = torch.cat([x[i] for i in self.cond_indices], dim=self.cat_dim)
         x = list(x)
         y, dlogp = self.transformer.forward(
-            cond_inputs, inputs, context=context, inverse=True
+            cond_inputs, inputs, context=context, inverse=True, **kwargs
         )
         y = torch.split(y, input_lengths, self.cat_dim)
         for i, yi in zip(self.transformed_indices, y):
