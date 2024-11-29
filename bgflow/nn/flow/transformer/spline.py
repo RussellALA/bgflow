@@ -131,7 +131,7 @@ class ConditionalSplineTransformer(Transformer):
         slopes = torch.cat([slopes, slopes[..., [0]]], dim=-1)
         # make noncircular indices non-periodic
         slopes[..., self._noncircular_indices(y_dim), -1] = noncircular_slopes
-        # slopes = torch.nn.functional.softplus(slopes, beta=1)
+        slopes = torch.nn.functional.softplus(slopes, beta=1)
         return widths, heights, slopes
 
     def _forward(self, x, y, context=None):
@@ -228,7 +228,7 @@ class TemperatureSteerableConditionalSplineTransformer(ConditionalSplineTransfor
         widths, heights, slopes = super()._compute_params(x, y_dim)
         widths = torch.nn.functional.softmax(widths, dim=-1)
         heights = torch.nn.functional.softmax(heights, dim=-1)
-        slopes = torch.nn.functional.softplus(slopes, beta=1)
+        # slopes = torch.nn.functional.softplus(slopes, beta=1)
         potential = stable_log(slopes)/beta_0
         mean_potential = (stable_log(heights) - stable_log(widths))/beta_0
         mean_potential_adjusted = beta_1*mean_potential + stable_log(widths)
