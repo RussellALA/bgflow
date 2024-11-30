@@ -114,7 +114,7 @@ def _make_residual_conditioner(
         DEFAULT_MIN_DERIVATIVE = 1e-3
         torch.nn.init.constant_(net.final_layer.weight, 0.0)
         torch.nn.init.constant_(
-            net.final_layer.bias, np.log(np.exp(1 - DEFAULT_MIN_DERIVATIVE) - 1)
+            net.final_layer.bias, 0.0 # np.log(np.exp(1 - DEFAULT_MIN_DERIVATIVE) - 1)
         )
 
     return net
