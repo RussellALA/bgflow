@@ -52,8 +52,9 @@ class AffineTransformer(Transformer):
             log_sigma = torch.zeros_like(y).to(x)
         return mu, log_sigma
 
-    def _forward(self, x, y, *cond, **kwargs):
-        mu, log_sigma = self._get_mu_and_log_sigma(x, y, *cond)
+    def _forward(self, x, y, **kwargs):
+        context = kwargs.get("context", None)
+        mu, log_sigma = self._get_mu_and_log_sigma(x, y, context)
         assert mu.shape[-1] == y.shape[-1]
         assert log_sigma.shape[-1] == y.shape[-1]
         sigma = torch.exp(log_sigma)
@@ -65,8 +66,9 @@ class AffineTransformer(Transformer):
             y[..., self._is_circular] = y[..., self._is_circular] % 1.0
         return y, dlogp
 
-    def _inverse(self, x, y, *cond, **kwargs):
-        mu, log_sigma = self._get_mu_and_log_sigma(x, y, *cond)
+    def _inverse(self, x, y, **kwargs):
+        context = kwargs.get("context", None)
+        mu, log_sigma = self._get_mu_and_log_sigma(x, y, context)
         assert mu.shape[-1] == y.shape[-1]
         assert log_sigma.shape[-1] == y.shape[-1]
         sigma_inv = torch.exp(-log_sigma)
