@@ -1,5 +1,5 @@
 import torch
-
+from warnings import warn
 from .base import Transformer
 
 # TODO: write docstring
@@ -25,14 +25,16 @@ class AffineTransformer(Transformer):
         is_circular=False,
         restrict_to_unit_interval=False,
     ):
-        if scale_transformation is not None and is_circular:
-            raise ValueError("Scaling is not compatible with periodicity.")
         super().__init__()
         self._shift_transformation = shift_transformation
         self._scale_transformation = scale_transformation
         self._log_alpha = torch.nn.Parameter(torch.zeros(1) - init_downscale)
         self._preserve_volume = preserve_volume
         self._is_circular = torch.as_tensor(is_circular, dtype=torch.bool)
+        if self._scale_transformation is not None:
+            if self._is_circular.any():
+                warn("Scaling is not compatible with periodicity. Deactivating periodicity.")
+            self._is_circular = False
         self._restrict_to_unit_interval = restrict_to_unit_interval
 
     def _get_mu_and_log_sigma(self, x, y, *cond):
