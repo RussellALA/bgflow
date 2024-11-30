@@ -231,7 +231,7 @@ class TemperatureSteerableConditionalSplineTransformer(ConditionalSplineTransfor
         heights = torch.nn.functional.softmax(heights, dim=-1)
         slopes = torch.nn.functional.softplus(slopes, beta=1)
         potential = stable_log(slopes)/beta_0
-        mean_potential = (stable_log(heights) + stable_log(widths))/beta_0
+        mean_potential = (stable_log(heights) - stable_log(widths))/beta_0
         mean_potential_adjusted = beta_1*mean_potential + stable_log(widths)
         log_heights_beta_1 = mean_potential_adjusted - torch.logsumexp(mean_potential_adjusted, dim=-1, keepdim=True)
         log_slopes_beta_1 = beta_1*potential
