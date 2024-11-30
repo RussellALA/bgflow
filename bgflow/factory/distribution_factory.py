@@ -47,7 +47,7 @@ def _make_truncated_normal_distribution(shape, device=None, dtype=None, **kwargs
         if isinstance(defaults[key], torch.Tensor):
             defaults[key] = defaults[key].to(device=device, dtype=dtype)
 
-        if isinstance(defaults[key], float) or isinstance(defaults[key], int):
+        if isinstance(defaults[key], float) or (isinstance(defaults[key], int) and not isinstance(defaults[key], bool)):
             defaults[key] = (
                 torch.ones(shape, device=device, dtype=dtype) * defaults[key]
             )
