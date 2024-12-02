@@ -1,5 +1,5 @@
 import warnings
-from typing import Sequence
+from typing import Iterable
 
 import numpy as np
 import torch
@@ -43,9 +43,7 @@ class SplitFlow(Flow):
 
     def __init__(self, *sizes_or_indices, dim=-1):
         super().__init__()
-        if isinstance(sizes_or_indices[0], Sequence) or isinstance(
-            sizes_or_indices[0], np.ndarray
-        ):
+        if isinstance(sizes_or_indices[0], Iterable):
             self._sizes = None
             self._indices = sizes_or_indices
         else:
