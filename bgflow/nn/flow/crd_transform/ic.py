@@ -694,7 +694,6 @@ class GlobalInternalCoordinateTransformation(Flow):
         dlogp: torch.Tensor
             log det jacobian of the transformation
         """
-
         # get ics of reference system
         d01 = bonds[:, [0]]
         d12 = bonds[:, [1]]

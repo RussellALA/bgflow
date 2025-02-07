@@ -206,7 +206,19 @@ class ProductDistribution(CustomDistribution):
                 else SobolProductSampler(components=components, cat_dim=cat_dim)
             ),
         )
+        self._cat_dim = cat_dim
+        self._components = components
 
+    def log_prob(self, *xs):
+        if self._cat_dim is None:
+            assert len(xs) == len(self._components)
+            log_prob = [dist.log_prob(x) for dist, x in zip(self._components, xs)]
+        else:
+            assert len(xs) == 1
+            xs = xs[0].split(self._lengths, dim=self._cat_dim)
+            log_prob = [dist.log_prob(x) for x, dist in zip(xs, self._components)]
+        log_prob = [lp.reshape(lp.shape[0], -1) for lp in log_prob]
+        return torch.sum(torch.cat(log_prob, dim=-1), dim=-1)
 
 def _stacked_event_shapes(event_shapes, cat_dim):
     if cat_dim is None:

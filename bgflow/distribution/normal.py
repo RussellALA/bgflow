@@ -238,7 +238,7 @@ class TruncatedNormalDistribution(Energy, Sampler):
 
         return self._sample_impl(n_samples, temperature, rand_samples=rand_samples)
 
-    def _energy(self, x):
+    def energy(self, x, temperature=1.0):
         """The energy is the same as for a untruncated normal distribution
         (only the partition function changes).
 
@@ -256,7 +256,10 @@ class TruncatedNormalDistribution(Energy, Sampler):
         else:
             energies[x < self._lower_bound] = np.infty
             energies[x > self._upper_bound] = np.infty
-        return 0.5 * energies.sum(dim=-1, keepdim=True)
+        return  0.5 * energies.sum(dim=-1, keepdim=True) / temperature + self._log_Z(temperature)
+    
+    def _log_Z(self, temperature=1.0):
+        return torch.log(self.Z * self._sigma * np.sqrt(temperature)).sum() + self._sigma.shape[0] / 2 * np.log(2 * np.pi)
 
     def icdf(self, x):
         r = self.Z * x + self._cdf_lower_bound
