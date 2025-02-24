@@ -10,7 +10,7 @@ import torch
 
 from ...utils.types import assert_numpy
 from .base import _BridgeEnergy, _Bridge
-
+import queue
 
 __all__ = ["OpenMMBridge", "OpenMMEnergy"]
 
@@ -197,6 +197,12 @@ class OpenMMBridge(_Bridge):
 
         return energies, forces, new_positions, log_path_probability_ratio
 
+    def __del__(self):
+        if hasattr(self, "context_wrapper") and isinstance(
+            self.context_wrapper, MultiContext
+        ):
+            self.context_wrapper.terminate()
+
 
 class MultiContext:
     """A container for multiple OpenMM Contexts that are operated by different worker processes.
@@ -227,6 +233,7 @@ class MultiContext:
         self._task_queue = mp.Queue()
         self._result_queue = mp.Queue()
         self._workers = []  # workers are initialized in first evaluate call
+        self._terminated = False
         # using multiple workers
         try:
             get_ipython
@@ -348,13 +355,29 @@ class MultiContext:
         )
 
     def terminate(self):
-        """Terminate the workers."""
-        # soft termination
-        for _ in self._workers:
-            self._task_queue.put(None)
-        # hard termination
-        # for worker in self._workers:
-        #    worker.terminate()
+        try:
+            while not self._task_queue.empty():
+                try:
+                    self._task_queue.get_nowait()
+                except queue.Empty:
+                    break
+            """Terminate the workers."""
+            # soft termination
+            for _ in self._workers:
+                self._task_queue.put(None)
+            # hard termination
+            for worker in self._workers:
+                worker.join(timeout=5)  # Wait a few seconds for graceful exit
+                if worker.is_alive():
+                    worker.terminate()
+
+            self._task_queue.close()
+            self._task_queue.join_thread()
+            self._result_queue.close()
+            self._result_queue.join_thread()
+            self._terminated = True
+        except OSError:
+            pass
 
     def __del__(self):
         self.terminate()
