@@ -32,8 +32,8 @@ class CustomDistribution(Energy, Sampler):
         self._delegate_energy = energy
         self._delegate_sampler = sampler
 
-    def _energy(self, *args, **kwargs):
-        return self._delegate_energy._energy(*args, **kwargs)
+    def energy(self, *args, **kwargs):
+        return self._delegate_energy.energy(*args, **kwargs)
 
     def _sample(self, *args, **kwargs):
         return self._delegate_sampler._sample(*args, **kwargs)

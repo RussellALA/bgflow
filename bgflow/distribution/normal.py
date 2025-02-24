@@ -259,7 +259,13 @@ class TruncatedNormalDistribution(Energy, Sampler):
         return  0.5 * energies.sum(dim=-1, keepdim=True) / temperature + self._log_Z(temperature)
     
     def _log_Z(self, temperature=1.0):
-        return torch.log(self.Z * self._sigma * np.sqrt(temperature)).sum() + self._sigma.shape[0] / 2 * np.log(2 * np.pi)
+        if isinstance(temperature, float):
+            temperature = torch.ones(1, dtype=self._mu.dtype, device=self._mu.device) * temperature
+        elif isinstance(temperature, np.ndarray):
+            temperature = torch.as_tensor(temperature, dtype=self._mu.dtype, device=self._mu.device)
+        assert isinstance(temperature, torch.Tensor), f"temperature must be float, np.ndarray or torch.Tensor, not {type(temperature)}"
+        temperature = temperature.view(-1, 1)
+        return torch.log(self.Z * self._sigma * temperature.sqrt()).sum(dim=-1, keepdim=True) + self._sigma.shape[0] / 2 * np.log(2 * np.pi)
 
     def icdf(self, x):
         r = self.Z * x + self._cdf_lower_bound

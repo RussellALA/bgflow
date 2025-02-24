@@ -35,15 +35,15 @@ class ProductEnergy(Energy):
         self._cat_dim = cat_dim
         self._lengths = lengths
 
-    def _energy(self, *xs):
+    def energy(self, *xs, **kwargs):
         if self._cat_dim is None:
             assert len(xs) == len(self._components)
-            energies = [dist.energy(x) for dist, x in zip(self._components, xs)]
+            energies = [dist.energy(x, **kwargs) for dist, x in zip(self._components, xs)]
         else:
             assert len(xs) == 1
             xs = xs[0].split(self._lengths, dim=self._cat_dim)
-            energies = [dist.energy(x) for x, dist in zip(xs, self._components)]
-        return torch.sum(torch.stack(energies, dim=-1), dim=-1)
+            energies = [dist.energy(x, **kwargs) for x, dist in zip(xs, self._components)]
+        return torch.sum(torch.stack(energies, dim=-1), dim=-1) 
 
     def __getitem__(self, index):
         return self._components[index]
